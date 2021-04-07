@@ -1,10 +1,12 @@
-WEBHOOK_PASSPHRASE = 'abcdefgh'
-BINANCE_API_KEY = 'XUn3FtmKQ4o794YNb1ketTD1XlQl8onZa6MnyQlTxZTwycOCiBzLBp8bZ2DsJopn'
-BINANCE_SECRET_KEY = 'WYCZG6E38wPHavKofr982IInnzmJoOueOJIMFx9YlnG8QBzXmy8pSA6gI8adMuN0'
+import os
+
+WEBHOOK_PASSPHRASE = os.environ.get('WEBHOOK_PASSPHRASE')
+BINANCE_API_KEY = os.environ.get('BINANCE_API_KEY')
+BINANCE_SECRET_KEY = os.environ.get('BINANCE_SECRET_KEY')
+SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
 
 # API CONNECTION (rest server requests)
 API_BASE = 'https://api.binance.com'
-
 
 import csv
 def update_settings(crypto, usdt):
