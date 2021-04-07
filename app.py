@@ -25,7 +25,7 @@ def order(side, quantity, symbol, order_type=ORDER_TYPE_MARKET):
 
     return order
 
-def paper_order(time, side, quantity, symbol):
+def paper_order(time, side, quantity, symbol, tradingview_price):
     book_ticker = api_requests.get_book_ticker(symbol)
     bid_price = book_ticker['bidPrice']
     ask_price = book_ticker['askPrice']
@@ -35,7 +35,7 @@ def paper_order(time, side, quantity, symbol):
     elif(side == 'SELL'):
         price = bid_price
 
-    trade_book.write_trade(time, actual_time, symbol, str(quantity), side, str(ask_price))
+    trade_book.write_trade(tradingview_date=time, date=actual_time, symbol=symbol, amount=str(quantity), trade_type=side, tradingview_price=str(tradingview_price), ticker_price=str(ask_price))
 
     return {
         "code": "success",
@@ -47,6 +47,7 @@ def paper_order(time, side, quantity, symbol):
             "quantity": quantity,
             "side": side,
             "price": price,
+            "tradingview_price": tradingview_price,
         }
     }
 
@@ -62,6 +63,7 @@ def reset():
 @app.route('/profits')
 def profits():
     response = trade_book.calculate_profit()
+    response = "<xmp>{}</xmp>".format(response)
     return response
 
 @app.route('/return_csv')
@@ -86,11 +88,12 @@ def webhook():
     quantity = data['strategy']['order_contracts']
     symbol = data['ticker']
     time = data['time']
+    tradingview_price = data['strategy']['order_price']
     #live trading    
     #order_response = order(time=time, side=side, quantity=quantity, symbol=symbol)
 
     #paper trading
-    order_response = paper_order(time=time, side=side, quantity=quantity, symbol=symbol)
+    order_response = paper_order(time=time, side=side, quantity=quantity, symbol=symbol, tradingview_price=tradingview_price)
 
     if order_response:
         return order_response
