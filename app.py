@@ -6,8 +6,10 @@ from binance.enums import *
 
 app = Flask(__name__)
 
+'''
 if __name__ == '__main__':
     app.run()
+'''
 
 client = Client(config.BINANCE_API_KEY, config.BINANCE_SECRET_KEY, tld='us')
 
