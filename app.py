@@ -7,14 +7,32 @@ from binance.enums import *
 
 app = Flask(__name__)
 
+STARTING_CAPITAL = 100
+usdt = STARTING_CAPITAL
+crypto = 0
+
 #set up the binance client
 client = Client(config.BINANCE_API_KEY, config.BINANCE_SECRET_KEY, tld='us')
 
 #set up the trade book for paper trading
 trade_book.init_trade_book()
 
-def order(side, quantity, symbol, order_type=ORDER_TYPE_MARKET):
+def order(side, symbol, order_type=ORDER_TYPE_MARKET):
     try:
+
+        #set buy / sell quantity
+        if(side == 'BUY'):
+            balance = client.get_asset_balance(asset='USDT')
+            quantity = float(balance['free'] * 0.95) #trade with 95% of balance
+        elif(side == 'SELL'):
+            balance = client.get_asset_balance(asset=symbol)
+            quantity = float(balance['free'] * 0.95) #trade with 95% of balance
+        else:
+            quantity = 0
+
+
+
+
         print(f"sending order {order_type} - {side} {quantity} {symbol}")
         #order = client.create_order(symbol=symbol, side=side, type=order_type, quantity=quantity, time=time)
         order = client.create_test_order(symbol="ETHUSDT", side=side, type=order_type, quantity=quantity)
@@ -25,7 +43,10 @@ def order(side, quantity, symbol, order_type=ORDER_TYPE_MARKET):
 
     return order
 
-def paper_order(time, side, quantity, symbol, tradingview_price):
+# buys and sells with 95% of account
+def paper_order(time, side, symbol, tradingview_price):
+
+    #get bid/ask price
     book_ticker = api_requests.get_book_ticker(symbol)
     bid_price = book_ticker['bidPrice']
     ask_price = book_ticker['askPrice']
@@ -35,7 +56,35 @@ def paper_order(time, side, quantity, symbol, tradingview_price):
     elif(side == 'SELL'):
         price = bid_price
 
-    trade_book.write_trade(tradingview_date=time, date=actual_time, symbol=symbol, amount=str(quantity), trade_type=side, tradingview_price=str(tradingview_price), ticker_price=str(ask_price))
+    #set buy / sell quantity
+    global usdt, crypto
+    if(side == 'BUY'):
+        balance = usdt
+        quantity = balance * 0.95 #trade with 95% of balance
+        usdt = balance - quantity
+        quantity = quantity / float(ask_price)
+        crypto = crypto + float(quantity)
+        print(f"usdt:{usdt}")
+        print(f"crypto:{crypto}; in usdt:{crypto * float(ask_price)}")
+        
+        total_usdt = usdt + crypto * float(ask_price)
+        print(f"total usdt: {total_usdt}")
+
+    elif(side == 'SELL'):
+        balance = crypto
+        quantity = balance * 0.95 #trade with 95% of balance
+        crypto = balance - quantity
+        usdt = usdt + float(quantity) * float(bid_price)
+        print(f"usdt:{usdt}")
+        print(f"crypto:{crypto}; in usdt:{crypto * float(bid_price)}")
+
+        total_usdt = usdt + crypto * float(bid_price)
+        print(f"total usdt: {total_usdt}")
+    else:
+        quantity = 0
+
+    trade_book.write_trade(tradingview_date=time, date=actual_time, symbol=symbol, amount=str(quantity), trade_type=side, tradingview_price=str(tradingview_price), ticker_price=str(ask_price), total_usdt=str(total_usdt))
+
 
     return {
         "code": "success",
@@ -58,6 +107,9 @@ def hello():
 @app.route('/reset')
 def reset():
     trade_book.init_trade_book()
+    global usdt, crypto
+    usdt = STARTING_CAPITAL
+    crypto = 0
     return "success"
 
 @app.route('/profits')
@@ -90,10 +142,10 @@ def webhook():
     time = data['time']
     tradingview_price = data['strategy']['order_price']
     #live trading    
-    #order_response = order(time=time, side=side, quantity=quantity, symbol=symbol)
+    #order_response = order(time=time, side=side, symbol=symbol)
 
     #paper trading
-    order_response = paper_order(time=time, side=side, quantity=quantity, symbol=symbol, tradingview_price=tradingview_price)
+    order_response = paper_order(time=time, side=side, symbol=symbol, tradingview_price=tradingview_price)
 
     if order_response:
         return order_response

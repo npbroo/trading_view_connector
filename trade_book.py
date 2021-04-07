@@ -4,12 +4,12 @@ from decimal import Decimal
 def init_trade_book():
     with open('trade_history.csv','w',newline="") as File:
         writer = csv.writer(File)
-        writer.writerow(['Tradingview Time', 'Real Time', 'Symbol', 'Amount', 'Trade Type', 'TradingView Price', 'Price'])
+        writer.writerow(['Tradingview Time', 'Real Time', 'Symbol', 'Amount', 'Trade Type', 'TradingView Price', 'Price', 'Total USDT'])
 
-def write_trade(tradingview_date, date, symbol, amount, trade_type, tradingview_price, ticker_price):
+def write_trade(tradingview_date, date, symbol, amount, trade_type, tradingview_price, ticker_price, total_usdt):
     with open('trade_history.csv','a',newline="") as File:
         writer = csv.writer(File)
-        writer.writerow([tradingview_date, date, symbol, amount, trade_type, tradingview_price, ticker_price])
+        writer.writerow([tradingview_date, date, symbol, amount, trade_type, tradingview_price, ticker_price, total_usdt])
 
 def calculate_profit():
     with open('trade_history.csv', mode ='r') as File:
@@ -27,11 +27,13 @@ def calculate_profit():
             print(line['Price'])
             
             if(line['Trade Type'] == 'BUY'):
-                trade_profit -= Decimal(line['Price']) * Decimal(line['Amount'])
+                trade_profit -= Decimal(line['Total USDT'])
+                #trade_profit -= Decimal(line['Price']) * Decimal(line['Amount'])
                 print(trade_profit)
                 trade_i += 1
             if(line['Trade Type'] == 'SELL'):
-                trade_profit += Decimal(line['Price']) * Decimal(line['Amount'])
+                trade_profit += Decimal(line['Total USDT'])
+                #trade_profit += Decimal(line['Price']) * Decimal(line['Amount'])
                 trade_i += 1
             
             if(trade_i == 2):
