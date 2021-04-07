@@ -19,7 +19,7 @@ if(not path.exists('trade_history.csv')):
 
 #init settings if it doenst exist
 if(not path.exists('settings.csv')):
-    config.update_settings(crypto, usdt)
+    config.update_settings(0, 100)
 
 
 #set up the trade book for paper trading
