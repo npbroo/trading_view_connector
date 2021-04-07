@@ -8,7 +8,8 @@ from binance.enums import *
 
 app = Flask(__name__)
 
-STARTING_CAPITAL = 100
+#starting capital
+STARTING_CAPITAL = 100 
 
 #set up the binance client
 client = Client(config.BINANCE_API_KEY, config.BINANCE_SECRET_KEY, tld='us')
@@ -19,7 +20,7 @@ if(not path.exists('trade_history.csv')):
 
 #init settings if it doenst exist
 if(not path.exists('settings.csv')):
-    config.update_settings(0, 100)
+    config.update_settings(0, STARTING_CAPITAL)
 
 
 #set up the trade book for paper trading
