@@ -1,5 +1,6 @@
 # save this as app.py
-import json, config, trade_book, api_requests
+import json, config, trade_book, api_requests, os.path
+from os import path
 from datetime import datetime
 from flask import Flask, escape, request, render_template, send_file
 from binance.client import Client
@@ -8,14 +9,21 @@ from binance.enums import *
 app = Flask(__name__)
 
 STARTING_CAPITAL = 100
-usdt = STARTING_CAPITAL
-crypto = 0
 
 #set up the binance client
 client = Client(config.BINANCE_API_KEY, config.BINANCE_SECRET_KEY, tld='us')
 
+#init the tradebook if it doesnt exist
+if(not path.exists('trade_history.csv')):
+    trade_book.init_trade_book()
+
+#init settings if it doenst exist
+if(not path.exists('settings.csv')):
+    config.update_settings(crypto, usdt)
+
+
 #set up the trade book for paper trading
-trade_book.init_trade_book()
+#trade_book.init_trade_book()
 
 def order(side, symbol, order_type=ORDER_TYPE_MARKET):
     try:
@@ -57,7 +65,9 @@ def paper_order(time, side, symbol, tradingview_price):
         price = bid_price
 
     #set buy / sell quantity
-    global usdt, crypto
+    usdt = config.get_usdt()
+    crypto = config.get_crypto()
+
     if(side == 'BUY'):
         balance = usdt
         quantity = balance * 0.95 #trade with 95% of balance
@@ -83,6 +93,7 @@ def paper_order(time, side, symbol, tradingview_price):
     else:
         quantity = 0
 
+    config.update_settings(crypto, usdt)
     trade_book.write_trade(tradingview_date=time, date=actual_time, symbol=symbol, amount=str(quantity), trade_type=side, tradingview_price=str(tradingview_price), ticker_price=str(ask_price), total_usdt=str(total_usdt))
 
 
@@ -107,9 +118,10 @@ def hello():
 @app.route('/reset')
 def reset():
     trade_book.init_trade_book()
-    global usdt, crypto
+    global STARTING_CAPITAL
     usdt = STARTING_CAPITAL
     crypto = 0
+    config.update_settings(crypto, usdt)
     return "success"
 
 @app.route('/profits')
