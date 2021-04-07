@@ -1,3 +1,6 @@
 WEBHOOK_PASSPHRASE = 'abcdefgh'
 BINANCE_API_KEY = 'XUn3FtmKQ4o794YNb1ketTD1XlQl8onZa6MnyQlTxZTwycOCiBzLBp8bZ2DsJopn'
 BINANCE_SECRET_KEY = 'WYCZG6E38wPHavKofr982IInnzmJoOueOJIMFx9YlnG8QBzXmy8pSA6gI8adMuN0'
+
+# API CONNECTION (rest server requests)
+API_BASE = 'https://api.binance.com'

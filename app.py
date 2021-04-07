@@ -1,12 +1,17 @@
 # save this as app.py
-import json, config
-from flask import Flask, escape, request, render_template
+import json, config, trade_book, api_requests
+from datetime import datetime
+from flask import Flask, escape, request, render_template, send_file
 from binance.client import Client
 from binance.enums import *
 
 app = Flask(__name__)
 
+#set up the binance client
 client = Client(config.BINANCE_API_KEY, config.BINANCE_SECRET_KEY, tld='us')
+
+#set up the trade book for paper trading
+trade_book.init_trade_book()
 
 def order(side, quantity, symbol, order_type=ORDER_TYPE_MARKET):
     try:
@@ -20,10 +25,48 @@ def order(side, quantity, symbol, order_type=ORDER_TYPE_MARKET):
 
     return order
 
+def paper_order(time, side, quantity, symbol):
+    book_ticker = api_requests.get_book_ticker(symbol)
+    bid_price = book_ticker['bidPrice']
+    ask_price = book_ticker['askPrice']
+    actual_time = datetime.now().strftime("%H:%M:%S")
+    if(side == 'BUY'):
+        price = ask_price
+    elif(side == 'SELL'):
+        price = bid_price
+
+    trade_book.write_trade(time, actual_time, symbol, str(quantity), side, str(ask_price))
+
+    return {
+        "code": "success",
+        "message": "executed paper trade",
+        "details": {
+            "tradingview_time": time,
+            "actual_time": actual_time,
+            "symbol": symbol,
+            "quantity": quantity,
+            "side": side,
+            "price": price,
+        }
+    }
+
 @app.route('/')
 def hello():
     return render_template('index.html')
 
+@app.route('/reset')
+def reset():
+    trade_book.init_trade_book()
+    return "success"
+
+@app.route('/profits')
+def profits():
+    response = trade_book.calculate_profit()
+    return response
+
+@app.route('/return_csv')
+def return_csv():
+    return send_file('trade_history.csv', as_attachment=True, cache_timeout=0)
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -41,10 +84,17 @@ def webhook():
 
     side = data['strategy']['order_action'].upper()
     quantity = data['strategy']['order_contracts']
-    order_response = order(side=side, quantity=quantity, symbol="ETHUSDT")
+    symbol = data['ticker']
+    time = data['time']
+    #live trading    
+    #order_response = order(time=time, side=side, quantity=quantity, symbol=symbol)
+
+    #paper trading
+    order_response = paper_order(time=time, side=side, quantity=quantity, symbol=symbol)
 
     if order_response:
-        return {
+        return order_response
+        response = {
             "code": "success",
             "message": "order executed"
         }
