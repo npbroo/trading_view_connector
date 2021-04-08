@@ -8,12 +8,17 @@
         </style>
     </head>
     <body>
-        <h1>Welcome</h1>
-        <h4>Total Asset: ${{total_usdt}}</h4>
+        <h1>Stonk Bot</h1>
+        {% for strat, usdt in strats.items() %}
+            <p>
+                Total Asset ({{strat}}): ${{usdt}}
+                <a href=profits/{{strat}}><button class=grey>Transactions</button></a>
+                <a href=export/{{strat}}><button class=grey>Export CSV</button></a>
+            </p>
+        {% endfor %}
+        <!--<h4>Total Asset: ${{total_usdt}}</h4>-->
         <p>
-            <!-- <a href=reset ><button class=grey>reset the paper trader</button></a> !-->
-            <a href=profits ><button class=grey>View Transaction History</button></a>
-            <a href=return_csv ><button class=grey>Export CSV</button></a>
+            <a href=export><button class=grey>Export All</button></a>
         </p>
         {% if random == 1 %}
         <img src="{{ url_for('static', filename = 'moon_soon.png') }}"/>

@@ -1,4 +1,5 @@
 {
+    "strat_id": "**ENTER CUSTOM STRAT ID HERE**",
     "passphrase": "abcdefgh",
     "time": "{{timenow}}",
     "exchange": "{{exchange}}",
