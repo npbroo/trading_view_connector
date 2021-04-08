@@ -1,5 +1,5 @@
 # save this as app.py
-import json, config, trade_book, api_requests, os.path
+import json, config, api_requests, os.path
 from os import path
 from datetime import datetime
 from flask import Flask, escape, request, render_template, send_file
@@ -8,8 +8,12 @@ from binance.enums import *
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABSE_URI'] = config.SQLALCHEMY_DATABASE_URI
+app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
+from models import Trades, Settings
+import trade_book
 
 #starting capital
 STARTING_CAPITAL = 100 
@@ -17,52 +21,15 @@ STARTING_CAPITAL = 100
 #set up the binance client
 client = Client(config.BINANCE_API_KEY, config.BINANCE_SECRET_KEY, tld='us')
 
-#init the tradebook if it doesnt exist
-if(not path.exists('trade_history.csv')):
-    trade_book.init_trade_book()
+# init settings database if it is empty
+if(Settings.query.first() is None):
+    settings = Settings(usdt=STARTING_CAPITAL, crypto=0, total_asset_in_usdt=STARTING_CAPITAL)
+    db.session.add(settings)
+    db.session.commit()
 
-#init settings if it doenst exist
-if(not path.exists('settings.csv')):
-    config.update_settings(0, STARTING_CAPITAL)
-
-
-#create our database models
-class Trades(db.Model):
-    __tablename__= "trades"
-    id = db.Column(db.Integer, primary_key=True)
-    tradingview_time = db.Column(db.String(120))
-    real_time = db.Column(db.String(120))
-    symbol = db.Column(db.String(20))
-    amount = db.Column(db.Float)
-    trade_type = db.Column(db.String(20))
-    tradingview_price = db.Column(db.Float)
-    price = db.Column(db.Float)
-    total_usdt = db.Column(db.Float)
-
-    def __init__(self, tradingview_time, real_time, symbol, amount, trade_type, tradingview_price, price, total_usdt):
-        self.tradingview_time = tradingview_time
-        self.real_time = real_time
-        self.symbol = symbol
-        self.amount = amount
-        self.trade_type = trade_type
-        self.tradingview_price = tradingview_price
-        self.price = price
-        self.total_usdt = total_usdt
-
-class Settings(db.Model):
-    __tablename__= "settings"
-    id = db.Column(db.Integer, primary_key=True)
-    usdt = db.Column(db.Float)
-    crypto = db.Column(db.Float)
-
-
-
-#set up the trade book for paper trading
-#trade_book.init_trade_book()
-
+# sends a real binance order
 def order(side, symbol, order_type=ORDER_TYPE_MARKET):
     try:
-
         #set buy / sell quantity
         if(side == 'BUY'):
             balance = client.get_asset_balance(asset='USDT')
@@ -72,9 +39,6 @@ def order(side, symbol, order_type=ORDER_TYPE_MARKET):
             quantity = float(balance['free'] * 0.95) #trade with 95% of balance
         else:
             quantity = 0
-
-
-
 
         print(f"sending order {order_type} - {side} {quantity} {symbol}")
         #order = client.create_order(symbol=symbol, side=side, type=order_type, quantity=quantity, time=time)
@@ -86,7 +50,7 @@ def order(side, symbol, order_type=ORDER_TYPE_MARKET):
 
     return order
 
-# buys and sells with 95% of account
+# buys and sells a paper order with 95% of account
 def paper_order(time, side, symbol, tradingview_price):
 
     #get bid/ask price
@@ -100,8 +64,8 @@ def paper_order(time, side, symbol, tradingview_price):
         price = bid_price
 
     #set buy / sell quantity
-    usdt = config.get_usdt()
-    crypto = config.get_crypto()
+    usdt = Settings.query.first().usdt
+    crypto = Settings.query.first().crypto
 
     if(side == 'BUY'):
         balance = usdt
@@ -128,9 +92,14 @@ def paper_order(time, side, symbol, tradingview_price):
     else:
         quantity = 0
 
-    config.update_settings(crypto, usdt)
-    trade_book.write_trade(tradingview_date=time, date=actual_time, symbol=symbol, amount=str(quantity), trade_type=side, tradingview_price=str(tradingview_price), ticker_price=str(ask_price), total_usdt=str(total_usdt))
+    Settings.query.first().usdt = usdt
+    Settings.query.first().crypto = crypto
+    Settings.query.first().total_asset_in_usdt = total_usdt
 
+    # add trade to database
+    trade = Trades(tradingview_time=time, real_time=actual_time, symbol=symbol, amount=str(quantity), trade_type=side, tradingview_price=str(tradingview_price), price=str(ask_price), total_usdt=str(total_usdt))
+    db.session.add(trade)
+    db.session.commit()
 
     return {
         "code": "success",
@@ -148,15 +117,16 @@ def paper_order(time, side, symbol, tradingview_price):
 
 @app.route('/')
 def hello():
-    return render_template('index.html')
+    total_usdt = Settings.query.first().total_asset_in_usdt
+    return render_template('index.html', total_usdt = total_usdt)
 
 @app.route('/reset')
 def reset():
-    trade_book.init_trade_book()
-    global STARTING_CAPITAL
-    usdt = STARTING_CAPITAL
-    crypto = 0
-    config.update_settings(crypto, usdt)
+    Trades.query.delete()
+    Settings.query.delete()
+    settings = Settings(usdt=STARTING_CAPITAL, crypto=0, total_asset_in_usdt=STARTING_CAPITAL)
+    db.session.add(settings)
+    db.session.commit()
     return "success"
 
 @app.route('/profits')
@@ -167,6 +137,7 @@ def profits():
 
 @app.route('/return_csv')
 def return_csv():
+    trade_book.export_csv()
     return send_file('trade_history.csv', as_attachment=True, cache_timeout=0)
 
 @app.route('/webhook', methods=['POST'])
@@ -188,10 +159,14 @@ def webhook():
     symbol = data['ticker']
     time = data['time']
     tradingview_price = data['strategy']['order_price']
-    #live trading    
+    '''
+    LIVE TRADING:   
+    '''
     #order_response = order(time=time, side=side, symbol=symbol)
 
-    #paper trading
+    '''
+    PAPER TRADING:
+    '''
     order_response = paper_order(time=time, side=side, symbol=symbol, tradingview_price=tradingview_price)
 
     if order_response:
