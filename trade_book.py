@@ -21,6 +21,7 @@ def calculate_profit():
     trade_i = 0
 
     query = Trades.query.all()
+    starting_capital = 0
     for trade in query:
 
         if(trade_i == 0):
@@ -51,9 +52,9 @@ def calculate_profit():
             trade_num += 1
 
     #print('Avg Trade: {}'.format(np.average(trades)))
-    text += '\n\nSTARTING ASSET: ${}'.format(starting_capital)
+    text += '\n\nSTARTING ASSET: ${}'.format(float(starting_capital))
     text += '\nENDING ASSET: ${}'.format(float(starting_capital) + float(total_profit))
-    text += '\nTOTAL PROFIT: ${}'.format(total_profit)
+    text += '\nTOTAL PROFIT: ${}'.format(float(total_profit))
     
 
 
