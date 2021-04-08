@@ -12,9 +12,15 @@
         <h4>Total Asset: ${{total_usdt}}</h4>
         <p>
             <!-- <a href=reset ><button class=grey>reset the paper trader</button></a> !-->
-            <a href=profits ><button class=grey>calculate profits</button></a>
-            <a href=return_csv ><button class=grey>return trade history</button></a>
+            <a href=profits ><button class=grey>View Transaction History</button></a>
+            <a href=return_csv ><button class=grey>Export CSV</button></a>
         </p>
+        {% if random == 1 %}
+        <img src="{{ url_for('static', filename = 'moon_soon.png') }}"/>
+        {% else if random == 2 %}
         <img src="{{ url_for('static', filename = 'crypto_ape.png') }}"/>
+        {% else if random == 3 %}
+        <img src="{{ url_for('static', filename = 'bob_ross.png') }}"/>
+        {% endif %}
     </body>
 </html>

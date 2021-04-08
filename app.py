@@ -73,7 +73,7 @@ def paper_order(time, side, symbol, tradingview_price):
     book_ticker = api_requests.get_book_ticker(symbol)
     bid_price = book_ticker['bidPrice']
     ask_price = book_ticker['askPrice']
-    actual_time = datetime.now().strftime("%H:%M:%S")
+    actual_time = datetime.now().strftime("%x - %X")
     if(side == 'BUY'):
         price = ask_price
     elif(side == 'SELL'):
@@ -134,7 +134,8 @@ def paper_order(time, side, symbol, tradingview_price):
 @app.route('/')
 def hello():
     total_usdt = Settings.query.first().total_asset_in_usdt
-    return render_template('index.html', total_usdt = total_usdt)
+    random = random.randint(1, 2)
+    return render_template('index.html', total_usdt=total_usdt, random=random)
 
 @app.route('/reset')
 def reset():

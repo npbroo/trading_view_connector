@@ -14,7 +14,6 @@ def export_csv():
 def calculate_profit():
     
     text = "\n"
-    print("\n")
     total_profit = 0
     trade_profit = 0
     trades = []
@@ -24,30 +23,38 @@ def calculate_profit():
     query = Trades.query.all()
     for trade in query:
 
+        if(trade_i == 0):
+            if(trade_num == 1):
+                starting_capital = trade.total_usdt
+                text += "TRANSACTION HISTORY"
+            text += '\n\nTrade #{}:'.format(trade_num)
+
         print(trade.amount)
         print(trade.price)
+        real_time = trade.real_time
         
         if(trade.trade_type == 'BUY'):
             trade_profit -= Decimal(trade.total_usdt)
-            #trade_profit -= Decimal(line['Price']) * Decimal(line['Amount'])
-            print(trade_profit)
+            text += '\n\tBUY @ {} | PRICE: {}'.format(real_time, str(trade.price))
             trade_i += 1
         if(trade.trade_type == 'SELL'):
             trade_profit += Decimal(trade.total_usdt)
-            #trade_profit += Decimal(line['Price']) * Decimal(line['Amount'])
+            text += '\n\tSELL@ {} | PRICE: {}'.format(real_time, str(trade.price))
             trade_i += 1
-        
         if(trade_i == 2):
             trade_i = 0
             trades.append(trade_profit)
-            text += '\nTrade #{}: {}'.format(trade_num, trade_profit)
-            print('Trade #{}: {}'.format(trade_num, trade_profit))
+            text += '\n\tTRADE PROFIT: {}'.format(trade_profit)
+            text += '\n\tTOTAL ASSET: ${}'.format(trade.total_usdt)
             total_profit += trade_profit
             trade_profit = 0
             trade_num += 1
 
     #print('Avg Trade: {}'.format(np.average(trades)))
-    text += '\nTotal Profit: {}\n'.format(total_profit)
-    print('Total Profit: {}\n'.format(total_profit))
+    text += '\n\nSTARTING ASSET: ${}'.format(starting_capital)
+    text += '\nENDING ASSET: ${}'.format(float(starting_capital) + float(total_profit))
+    text += '\nTOTAL PROFIT: ${}'.format(total_profit)
+    
+
 
     return text
