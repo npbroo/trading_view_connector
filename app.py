@@ -1,5 +1,5 @@
 # save this as app.py
-import json, config, api_requests, os.path
+import json, config, api_requests, os.path, random
 from os import path
 from datetime import datetime
 from flask import Flask, escape, request, render_template, send_file
@@ -134,8 +134,8 @@ def paper_order(time, side, symbol, tradingview_price):
 @app.route('/')
 def hello():
     total_usdt = Settings.query.first().total_asset_in_usdt
-    random = random.randint(1, 2)
-    return render_template('index.html', total_usdt=total_usdt, random=random)
+    rand = random.randint(1, 3)
+    return render_template('index.html', total_usdt=total_usdt, random=rand)
 
 @app.route('/reset')
 def reset():

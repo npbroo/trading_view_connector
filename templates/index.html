@@ -17,9 +17,9 @@
         </p>
         {% if random == 1 %}
         <img src="{{ url_for('static', filename = 'moon_soon.png') }}"/>
-        {% else if random == 2 %}
+        {% elif random == 2 %}
         <img src="{{ url_for('static', filename = 'crypto_ape.png') }}"/>
-        {% else if random == 3 %}
+        {% elif random == 3 %}
         <img src="{{ url_for('static', filename = 'bob_ross.png') }}"/>
         {% endif %}
     </body>
