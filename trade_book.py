@@ -22,12 +22,12 @@ def calculate_profit():
 
     query = Trades.query.all()
     starting_capital = 0
+    text += "TRANSACTION HISTORY"
     for trade in query:
 
         if(trade_i == 0):
             if(trade_num == 1):
                 starting_capital = trade.total_usdt
-                text += "TRANSACTION HISTORY"
             text += '\n\nTrade #{}:'.format(trade_num)
 
         print(trade.amount)
