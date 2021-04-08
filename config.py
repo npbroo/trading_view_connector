@@ -1,9 +1,11 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
-WEBHOOK_PASSPHRASE = os.environ.get('WEBHOOK_PASSPHRASE')
-BINANCE_API_KEY = os.environ.get('BINANCE_API_KEY')
-BINANCE_SECRET_KEY = os.environ.get('BINANCE_SECRET_KEY')
-SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+WEBHOOK_PASSPHRASE = os.getenv('WEBHOOK_PASSPHRASE')
+BINANCE_API_KEY = os.getenv('BINANCE_API_KEY')
+BINANCE_SECRET_KEY = os.getenv('BINANCE_SECRET_KEY')
+SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
 
 # API CONNECTION (rest server requests)
 API_BASE = 'https://api.binance.com'

@@ -5,8 +5,11 @@ from datetime import datetime
 from flask import Flask, escape, request, render_template, send_file
 from binance.client import Client
 from binance.enums import *
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABSE_URI'] = config.SQLALCHEMY_DATABASE_URI
+db = SQLAlchemy(app)
 
 #starting capital
 STARTING_CAPITAL = 100 
@@ -21,6 +24,37 @@ if(not path.exists('trade_history.csv')):
 #init settings if it doenst exist
 if(not path.exists('settings.csv')):
     config.update_settings(0, STARTING_CAPITAL)
+
+
+#create our database models
+class Trades(db.Model):
+    __tablename__= "trades"
+    id = db.Column(db.Integer, primary_key=True)
+    tradingview_time = db.Column(db.String(120))
+    real_time = db.Column(db.String(120))
+    symbol = db.Column(db.String(20))
+    amount = db.Column(db.Float)
+    trade_type = db.Column(db.String(20))
+    tradingview_price = db.Column(db.Float)
+    price = db.Column(db.Float)
+    total_usdt = db.Column(db.Float)
+
+    def __init__(self, tradingview_time, real_time, symbol, amount, trade_type, tradingview_price, price, total_usdt):
+        self.tradingview_time = tradingview_time
+        self.real_time = real_time
+        self.symbol = symbol
+        self.amount = amount
+        self.trade_type = trade_type
+        self.tradingview_price = tradingview_price
+        self.price = price
+        self.total_usdt = total_usdt
+
+class Settings(db.Model):
+    __tablename__= "settings"
+    id = db.Column(db.Integer, primary_key=True)
+    usdt = db.Column(db.Float)
+    crypto = db.Column(db.Float)
+
 
 
 #set up the trade book for paper trading

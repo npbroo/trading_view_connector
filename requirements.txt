@@ -1,3 +1,6 @@
 flask
 gunicorn
 python-binance
+psycopg2
+Flask-SQLAlchemy
+python-dotenv
