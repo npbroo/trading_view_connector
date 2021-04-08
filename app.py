@@ -8,18 +8,26 @@ from binance.enums import *
 from flask_sqlalchemy import SQLAlchemy
 
 ENV = 'dev'
-
 app = Flask(__name__)
+
+# handle heroku postgres bug (SQLAlchemy depreciated postgres for postgresql)
+database_url = config.DATABASE_URL
+if database_url.find('postgresql') != -1:
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+else:
+    database_url.replace('postgres', 'postgresql', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+
+#debug if the environment is development
 if ENV == 'dev':
     app.debug = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://wvxzizpyjwgmgf:6a579dfa650050982669f0267995acf06e686a5edc4af92339bb0bfe416812bb@ec2-18-233-83-165.compute-1.amazonaws.com:5432/df5ut0mftu3t2i'
 else:
     app.debug = False
-    app.config['SQLALCHEMY_DATABASE_URI'] = config.DATABASE_URL
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+#must import after db to prevent circular import
 from models import Trades, Settings
 import trade_book
 
