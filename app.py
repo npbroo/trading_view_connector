@@ -15,7 +15,7 @@ database_url = config.DATABASE_URL
 if database_url.find('postgresql') != -1:
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 else:
-    database_url.replace('postgres', 'postgresql', 1)
+    database_url = database_url.replace('postgres', 'postgresql', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 
 #debug if the environment is development
