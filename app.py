@@ -84,10 +84,12 @@ def paper_order(strat_id, side, symbol, tradingview_price, tradingview_time):
         db.session.add(strat_asset)
         db.session.commit()
 
+
     #check if it's a duplicate order type
     query = Trade_Table.query.filter_by(strat_id=strat_id).order_by(Trade_Table.real_time.desc()).first()
-    if(side == query.side):
-        return
+    if( not query is None):
+        if(side == query.trade_type):
+            return
 
     #get the amount of usdt and crypto for the strategies assets
     usdt = Strat_Assets.query.filter_by(strat_id=strat_id).first().usdt
