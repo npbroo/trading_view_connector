@@ -34,6 +34,8 @@ import trade_book
 
 #starting capital
 STARTING_CAPITAL = 100 
+TRADE_PERCENT = 0.95
+FEE = 0.01
 
 #set up the binance client
 client = Client(config.BINANCE_API_KEY, config.BINANCE_SECRET_KEY, tld='us')
@@ -75,9 +77,17 @@ def paper_order(strat_id, side, symbol, tradingview_price, tradingview_time):
 
     #check if database entry exists for this strat (if not create a new entry)
     if(Strat_Assets.query.filter_by(strat_id=strat_id).first() is None):
+        #dont execute order if the first order is a sell order
+        if(side == 'SELL'):
+            return
         strat_asset = Strat_Assets(strat_id=strat_id, symbol=symbol, usdt=STARTING_CAPITAL, crypto=0, total_asset_in_usdt=STARTING_CAPITAL)
         db.session.add(strat_asset)
         db.session.commit()
+
+    #check if it's a duplicate order type
+    query = Trade_Table.query.filter_by(strat_id=strat_id).order_by(Trade_Table.real_time.desc()).first()
+    if(side == query.side):
+        return
 
     #get the amount of usdt and crypto for the strategies assets
     usdt = Strat_Assets.query.filter_by(strat_id=strat_id).first().usdt
@@ -85,10 +95,13 @@ def paper_order(strat_id, side, symbol, tradingview_price, tradingview_time):
     quantity = 0
 
     if(side == 'BUY'):
-        quantity = usdt * 0.95 #trade with 95% of balance
-        usdt -= quantity
-        quantity = quantity / float(ask_price)
-        crypto = crypto + float(quantity)
+        quantity = usdt * TRADE_PERCENT #trade with 95% of balance
+
+        amt_passed_usdt = (usdt*TRADE_PERCENT) - (usdt*TRADE_PERCENT*FEE)
+        usdt = usdt - amt_passed_usdt
+        amt_passed_crypto = amt_passed_usdt/float(ask_price)
+        crypto = crypto + amt_passed_crypto
+
         print(f"usdt:{usdt}")
         print(f"crypto:{crypto}; in usdt:{crypto * float(ask_price)}")
 
@@ -97,9 +110,13 @@ def paper_order(strat_id, side, symbol, tradingview_price, tradingview_time):
         print(f"total usdt: {total_usdt}")
 
     elif(side == 'SELL'):
-        quantity = crypto * 0.95 #trade with 95% of balance
-        crypto -= quantity
-        usdt = usdt + float(quantity) * float(bid_price)
+        quantity = crypto * TRADE_PERCENT #trade with 95% of balance
+
+        amt_passed_crypto = (crypto * TRADE_PERCENT) - (crypto * TRADE_PERCENT * FEE)
+        crypto = crypto - amt_passed_crypto
+        amt_passed_usdt = amt_passed_crypto * float(bid_price)
+        usdt = usdt + amt_passed_usdt
+
         print(f"usdt:{usdt}")
         print(f"crypto:{crypto}; in usdt:{crypto * float(bid_price)}")
 
@@ -136,7 +153,7 @@ def paper_order(strat_id, side, symbol, tradingview_price, tradingview_time):
 # The homepage
 @app.route('/')
 def home():
-    query = Strat_Assets.query.all()
+    query = Strat_Assets.query.order_by(Strat_Assets.total_asset_in_usdt.desc()).all()
     strats = {}
     for strat in query:
         strats[strat.strat_id] =  strat.total_asset_in_usdt
