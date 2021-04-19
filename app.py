@@ -1,11 +1,12 @@
 # save this as app.py
-import json, config, api_requests, os.path, random
+import json, config, api_requests, os.path, random, math
 from os import path
 from datetime import datetime
 from flask import Flask, escape, request, render_template, send_file
 from binance.client import Client
 from binance.enums import *
 from flask_sqlalchemy import SQLAlchemy
+from decimal import Decimal
 
 ENV = 'dev'
 app = Flask(__name__)
@@ -40,27 +41,47 @@ FEE = 0.01
 #set up the binance client
 client = Client(config.BINANCE_API_KEY, config.BINANCE_SECRET_KEY, tld='us')
 
+
+LIVE_TRADE_PERCENT = 0.92
+
 # sends a real binance order
 def order(side, symbol, order_type=ORDER_TYPE_MARKET):
     try:
         #set buy / sell quantity
+
+        book_ticker = api_requests.get_book_ticker(symbol=f'{symbol}USDT')
+        bid_price = float(book_ticker['bidPrice'])
+        ask_price = float(book_ticker['askPrice'])
+
+        info = client.get_symbol_info(symbol=f'{symbol}USDT')
+        step_size = float(info['filters'][2]['stepSize'])
+        print(f'Step Size: {step_size}')
+
+        print(f'bid price: {bid_price}')
         if(side == 'BUY'):
             balance = client.get_asset_balance(asset='USDT')
-            quantity = float(balance['free'] * 0.95) #trade with 95% of balance
+            print(f"balance: {balance}")
+            quantity = float(balance['free']) * LIVE_TRADE_PERCENT / ask_price #trade with 95% of balance
         elif(side == 'SELL'):
             balance = client.get_asset_balance(asset=symbol)
-            quantity = float(balance['free'] * 0.95) #trade with 95% of balance
+            print(f"balance: {balance}")
+            quantity = float(balance['free']) * LIVE_TRADE_PERCENT #trade with 95% of balance
         else:
             quantity = 0
 
+        precision = int(round(-math.log(step_size, 10), 0))
+        print(f'precision: {precision}')
+
+        quantity = float(round(quantity, precision))
         print(f"sending order {order_type} - {side} {quantity} {symbol}")
-        #order = client.create_order(symbol=symbol, side=side, type=order_type, quantity=quantity, time=time)
-        order = client.create_test_order(symbol="ETHUSDT", side=side, type=order_type, quantity=quantity)
+
+        order = client.create_order(symbol=f"{symbol}USDT", side=side, type=order_type, quantity=quantity)
         print(order)
     except Exception as e:
         print("an exception occured - {}".format(e))
         return False
 
+    #return order
     return order
 
 # Webhook for buying and selling multiple different strategies and storage in the same database
@@ -222,8 +243,12 @@ def webhook():
     tradingview_time = data['time']
     tradingview_price = data['strategy']['order_price']
 
+    paper_trade = data['paper_trade']
     #PAPER TRADING
-    order_response = paper_order(strat_id=strat_id, side=side, symbol=symbol, tradingview_price=tradingview_price, tradingview_time=tradingview_time)
+    if(paper_trade == 'TRUE'):
+        order_response = paper_order(strat_id=strat_id, side=side, symbol=symbol, tradingview_price=tradingview_price, tradingview_time=tradingview_time)
+    elif(paper_trade == 'FALSE'):
+        order_response = order(side=side, symbol=symbol, order_type=ORDER_TYPE_MARKET)
 
     if order_response:
         return order_response

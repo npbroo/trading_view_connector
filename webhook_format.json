@@ -1,5 +1,6 @@
 {
     "strat_id": "**ENTER CUSTOM STRAT ID HERE**",
+    "paper_trade": "TRUE",
     "passphrase": "abcdefgh",
     "time": "{{timenow}}",
     "exchange": "{{exchange}}",
